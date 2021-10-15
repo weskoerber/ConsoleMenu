@@ -7,4 +7,8 @@
 bin/
 obj/
 
+### VS CODE ###
+# VS Code settings
+.vscode/
+
 # End of https://www.toptal.com/developers/gitignore/api/dotnetcore
