@@ -1,5 +1,6 @@
 ﻿using System;
 using ConsoleMenu;
+using ConsoleMenu.Processors;
 
 namespace ConsoleMenuDemo
 {
@@ -44,6 +45,7 @@ namespace ConsoleMenuDemo
                     .Add("Go Back", (m) => m.Close())
                     .Add("Feed Animals", () => Console.WriteLine("FeedAnimals")));
 
+            // Menu.Processor = new ScrollProcessor();
             menu.Run();
         }
     }

@@ -2,11 +2,9 @@ using System;
 
 namespace ConsoleMenu.Processors
 {
-    public class ScrollProcessor : IProcessor
+    public class ScrollProcessor : Processor
     {
-        private Action<MenuItem> _itemHandler;
-
-        public void HandleInput(ConsoleKeyInfo keyInfo)
+        public override void HandleInput(ConsoleKeyInfo keyInfo)
         {
             switch (keyInfo.Key)
             {
@@ -31,26 +29,10 @@ namespace ConsoleMenu.Processors
             }
         }
 
-        public void PrintMenu(Menu menu)
+        public override void PrintMenu()
         {
-            if (ReadyToInvoke)
-            {
-                Console.WriteLine();
-                ReadyToInvoke = false;
-                Menu.SelectedItem.Action?.Invoke();
-                
-                if (Menu.IsRunning)
-                {
-                    return;
-                }
-            }
-
-            // Menu must not be assigned before invocation (above)!
-            Menu = menu;
-
             Console.Clear();
             Console.WriteLine(Menu.Title);
-            Console.WriteLine(new string('=', Menu.SeparatorWidth));
 
             foreach (var item in Menu.MenuItems)
             {
@@ -67,11 +49,7 @@ namespace ConsoleMenu.Processors
             }
         }
 
-        public bool ReadyToInvoke { get; private set; }
-
-        public Menu Menu { get; set; }
-
-        public Action<MenuItem> ItemHandler
+        public override Action<MenuItem> ItemHandler
         { 
             get 
             {

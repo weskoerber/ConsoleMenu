@@ -8,18 +8,10 @@ namespace ConsoleMenu
     {
         private bool _isRunning;
         private List<MenuItem> _menuItems;
-
-        public IReadOnlyList<MenuItem> MenuItems => _menuItems;
+        private Menu _parent;
+        private static Menu _current;
+        private static Processor _processor;
         public event EventHandler Closing;
-
-        public MenuItem SelectedItem { get; set; }
-        public bool IsRunning => _isRunning;
-        public int SeparatorWidth { get; private set; }
-        public string Title { get; private set; }
-        public Menu Parent { get; set; }
-
-        private static Menu Current { get; set; }
-        public static IProcessor Processor { get; set; }
 
         public Menu(string title)
         {
@@ -33,27 +25,32 @@ namespace ConsoleMenu
             }
 
             Title = title;
-
-            Processor ??= new SelectionProcessor();
-
+            Current = this;
             _menuItems = new List<MenuItem>();
-
-            ConsoleSettings.NavChanged += OnNavChanged;
         }
 
         public void Run()
         {
             Current = this;
-            Console.Clear();
-            SelectedItem = MenuItems[0];
-
             _isRunning = true;
-            Menu.Processor.PrintMenu(Current);
+
+            SelectedItem = MenuItems[0];
+            
+            Console.Clear();
+            Menu.Processor.PrintMenu();
             
             while (_isRunning)
             {
-                WaitForSelection();
-                Menu.Processor.PrintMenu(Current);
+                if (Processor.ReadyToInvoke)
+                {
+                    Processor.ReadyToInvoke = false;
+                    SelectedItem.Action?.Invoke();
+                    Menu.Processor.PrintMenu();
+                }
+                else
+                {
+                    WaitForSelection();
+                }
             }
         }
 
@@ -63,9 +60,9 @@ namespace ConsoleMenu
             Closing?.Invoke(this, EventArgs.Empty);
 
             if (Parent != null)
-            {
                 Current = Parent;
-            }            
+
+            Menu.Processor.PrintMenu();
         }
 
         public Menu Add(string name, Action action)
@@ -73,8 +70,6 @@ namespace ConsoleMenu
             var item = new MenuItem(MenuItems.Count, name, action);
 
             _menuItems.Add(item);
-
-            SetSeparatorWidth(item);
 
             return this;
         }
@@ -84,8 +79,6 @@ namespace ConsoleMenu
             var item = new MenuItem(MenuItems.Count, name, () => action(this));
 
             _menuItems.Add(item);
-
-            SetSeparatorWidth(item);
 
             return this;
         }
@@ -99,24 +92,6 @@ namespace ConsoleMenu
             return this;
         }
 
-        private void SetSeparatorWidth(MenuItem item)
-        {
-            int width;
-            if (ConsoleSettings.Nav == ConsoleSettings.Navigation.Scroll)
-            {
-                width = $"{MenuItems.Count}: {item.Name}".Length;
-            }
-            else
-            {
-                width = $"==> {item.Name}".Length;
-            }
-
-            if (width > SeparatorWidth)
-            {
-                SeparatorWidth = width;
-            }
-        }
-
         private void WaitForSelection()
         {
             var input = Console.ReadKey(true);
@@ -124,16 +99,47 @@ namespace ConsoleMenu
             Processor.HandleInput(input);
         }
 
-        private void OnNavChanged(object sender, NavChangedEventArgs e)
-        {            
-            Console.Clear();
-            if (e.Nav == ConsoleSettings.Navigation.Numeric)
+        public IReadOnlyList<MenuItem> MenuItems => _menuItems;
+
+        public bool IsRunning => _isRunning;
+
+        public string Title { get; private set; }
+
+        public MenuItem SelectedItem { get; set; }
+
+        public Menu Parent
+        {
+            get => _parent;
+            set
             {
-                Console.ResetColor();
+                if (value != null)
+                    _parent = value;
             }
-            else
+        }
+
+        public static Processor Processor
+        { 
+            get
             {
-                Console.ForegroundColor = ConsoleColor.Gray;
+                if (_processor == null)
+                    _processor = new SelectionProcessor();
+
+                return _processor;
+            }
+            set
+            {
+                if (value != null)
+                    _processor = value;
+            }
+        }
+
+        public static Menu Current
+        {
+            get => _current;
+            private set
+            {
+                if (value != null)
+                    _current = value;
             }
         }
     }
