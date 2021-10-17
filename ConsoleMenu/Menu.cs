@@ -1,17 +1,21 @@
 ﻿using ConsoleMenu.Processors;
 using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ConsoleMenu
 {
     public class Menu
     {
         private bool _isRunning;
-        private List<MenuItem> _menuItems;
+        private ObservableCollection<MenuItem> _menuItems;
         private Menu _parent;
         private static Menu _current;
         private static Processor _processor;
         public event EventHandler Closing;
+        public static event EventHandler<ConsoleKeyInfo> KeyPressed;
 
         public Menu(string title)
         {
@@ -26,31 +30,20 @@ namespace ConsoleMenu
 
             Title = title;
             Current = this;
-            _menuItems = new List<MenuItem>();
+            _menuItems = new ObservableCollection<MenuItem>();
         }
 
         public void Run()
         {
-            Current = this;
+            _current = this;
             _isRunning = true;
+            _current._menuItems.CollectionChanged += OnMenuItemsChanged;
+            Processor.Redraw();
 
-            SelectedItem = MenuItems[0];
-            
-            Console.Clear();
-            Menu.Processor.PrintMenu();
-            
-            while (_isRunning)
+            while (IsRunning)
             {
-                if (Processor.ReadyToInvoke)
-                {
-                    Processor.ReadyToInvoke = false;
-                    SelectedItem.Action?.Invoke();
-                    Menu.Processor.PrintMenu();
-                }
-                else
-                {
-                    WaitForSelection();
-                }
+                var cki = Console.ReadKey(true);
+                KeyPressed?.Invoke(this, cki);
             }
         }
 
@@ -60,14 +53,15 @@ namespace ConsoleMenu
             Closing?.Invoke(this, EventArgs.Empty);
 
             if (Parent != null)
+            {
                 Current = Parent;
-
-            Menu.Processor.PrintMenu();
+                Processor.Redraw();
+            }
         }
 
         public Menu Add(string name, Action action)
         {
-            var item = new MenuItem(MenuItems.Count, name, action);
+            var item = new MenuItem(_menuItems.Count, name, action);
 
             _menuItems.Add(item);
 
@@ -76,7 +70,7 @@ namespace ConsoleMenu
 
         public Menu Add(string name, Action<Menu> action)
         {
-            var item = new MenuItem(MenuItems.Count, name, () => action(this));
+            var item = new MenuItem(_menuItems.Count, name, () => action(this));
 
             _menuItems.Add(item);
 
@@ -85,21 +79,19 @@ namespace ConsoleMenu
 
         public Menu Add(string name, Menu child)
         {
-            child.Parent = this;
+            child._parent = this;
 
-            _menuItems.Add(new MenuItem(MenuItems.Count, name, child));
+            _menuItems.Add(new MenuItem(_menuItems.Count, name, child));
 
             return this;
         }
 
-        private void WaitForSelection()
+        private static void OnMenuItemsChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            var input = Console.ReadKey(true);
-
-            Processor.HandleInput(input);
+            Processor.Redraw();
         }
 
-        public IReadOnlyList<MenuItem> MenuItems => _menuItems;
+        public ObservableCollection<MenuItem> MenuItems => _menuItems;
 
         public bool IsRunning => _isRunning;
 
@@ -128,8 +120,10 @@ namespace ConsoleMenu
             }
             set
             {
-                if (value != null)
+                if (value != null && value != _processor)
+                {
                     _processor = value;
+                }
             }
         }
 

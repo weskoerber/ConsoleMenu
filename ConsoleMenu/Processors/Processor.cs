@@ -6,9 +6,9 @@ namespace ConsoleMenu.Processors
     {
         protected Action<MenuItem> _itemHandler;
 
-        public abstract void HandleInput(ConsoleKeyInfo keyInfo);
+        public abstract void OnConsoleInput(object sender, ConsoleKeyInfo keyInfo);
 
-        public abstract void PrintMenu();
+        public abstract void Redraw();
 
         public bool ReadyToInvoke { get; set; }
 

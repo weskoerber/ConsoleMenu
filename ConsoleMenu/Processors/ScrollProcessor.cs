@@ -4,7 +4,12 @@ namespace ConsoleMenu.Processors
 {
     public class ScrollProcessor : Processor
     {
-        public override void HandleInput(ConsoleKeyInfo keyInfo)
+        public ScrollProcessor(): base()
+        {
+            Menu.KeyPressed += OnConsoleInput;
+        }
+
+        public override void OnConsoleInput(object sender, ConsoleKeyInfo keyInfo)
         {
             switch (keyInfo.Key)
             {
@@ -14,6 +19,7 @@ namespace ConsoleMenu.Processors
                     {
                         Menu.SelectedItem = Menu.MenuItems[Menu.SelectedItem.Index + 1];
                     }
+                    Redraw();
                     break;
                 case ConsoleKey.UpArrow:
                 case ConsoleKey.K:
@@ -21,16 +27,20 @@ namespace ConsoleMenu.Processors
                     {
                         Menu.SelectedItem = Menu.MenuItems[Menu.SelectedItem.Index - 1];
                     }
+                    Redraw();
                     break;
                 case ConsoleKey.Enter:
                 case ConsoleKey.L:
-                    ReadyToInvoke = true;
+                    Menu.SelectedItem.Action?.Invoke();
                     break;
             }
         }
 
-        public override void PrintMenu()
+        public override void Redraw()
         {
+            if (Menu.SelectedItem == null)
+                Menu.SelectedItem = Menu.MenuItems[0];
+
             Console.Clear();
             Console.WriteLine(Menu.Title);
 

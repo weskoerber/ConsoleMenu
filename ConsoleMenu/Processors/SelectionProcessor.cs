@@ -4,12 +4,17 @@ namespace ConsoleMenu.Processors
 {
     public class SelectionProcessor : Processor
     {
-        public override void HandleInput(ConsoleKeyInfo keyInfo)
+        public SelectionProcessor(): base()
+        {
+            Menu.KeyPressed += OnConsoleInput;
+        }
+
+        public override void OnConsoleInput(object sender, ConsoleKeyInfo keyInfo)
         {
             if (int.TryParse(keyInfo.KeyChar.ToString(), out int idx) && idx < Menu.MenuItems.Count)
             {
                 Menu.SelectedItem = Menu.MenuItems[idx];
-                ReadyToInvoke = true;
+                Menu.SelectedItem.Action?.Invoke();
             }
             else
             {
@@ -19,7 +24,7 @@ namespace ConsoleMenu.Processors
             }
         }
 
-        public override void PrintMenu()
+        public override void Redraw()
         {
             Console.Clear();
             Console.WriteLine(Menu.Title);
